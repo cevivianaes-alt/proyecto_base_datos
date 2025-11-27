@@ -1,0 +1,89 @@
+create schema VCevallos;
+
+create table VCevallos.cliente(
+id_cliente SERIAL primary key,
+nombre varchar (100) not null,
+apellido varchar (100) not null,
+tipo_identificacion varchar (10) not null CHECK (tipo_identificacion IN ('CEDULA', 'RUC', 'PASAPORTE')),
+identificacion varchar (13), 
+telefono varchar (20),
+direccion text,
+email varchar (250) null,
+creado_en timestamp default current_timestamp,
+estado boolean default true,
+actualizado_en timestamp,
+unique ( tipo_identificacion, identificacion)
+);
+
+create table vcevallos.empleado(
+id_empleado SERIAL primary key not null,
+nombre varchar (100) not null,
+apellido varchar (100) not null,
+tipo_identificacion varchar (10) not null CHECK (tipo_identificacion IN ('CEDULA', 'RUC', 'PASAPORTE')),
+identificacion varchar (20) not null,
+telefono varchar(20),
+especialidad text,
+email varchar (150),
+salario decimal (10,2),
+creado_en timestamp default current_timestamp,
+estado boolean default true,
+actualizado_en timestamp,
+unique ( tipo_identificacion, identificacion)
+);
+
+create table vcevallos.servicios(
+id_servicios SERIAL primary key not null,
+nombre varchar(200) not null,
+descripcion text,
+duracion varchar(20),
+categoria varchar(100),
+precio decimal(10,2) not null check (precio > 0),
+creado_en timestamp default current_timestamp,
+estado boolean default true,
+actualizado_en timestamp
+);
+
+create table vcevallos.factura(
+id_factura serial primary key not null,
+id_cliente int not null,
+id_empleado int not null,
+fecha timestamp default current_timestamp,
+subtotal decimal(10,2) not null check (subtotal >= 0),
+impuesto decimal(10,2) not null check (impuesto >= 0),
+total decimal(10,2) not null check (total >=0),
+estado boolean default true,
+creado_en timestamp default current_timestamp,
+actualizado_en timestamp,
+foreign key (id_cliente) references vcevallos.cliente (id_cliente),
+foreign key (id_empleado) references vcevallos.empleado(id_empleado)
+);
+
+create table vcevallos.detalle_factura(
+id_detalle_factura serial primary key,
+id_factura int not null,
+id_servicios int not null,
+cantidad int not null check (cantidad >=0),
+precio decimal(10,2) not null check (precio >=0),
+subtotal decimal(10,2) not null check (subtotal >=0),
+estado boolean not null default true,
+creado_en timestamp default current_timestamp,
+actualizado_en timestamp,
+foreign key (id_factura) references vcevallos.factura(id_factura),
+foreign key (id_servicios) references vcevallos.servicios(id_servicios)
+);
+
+create table vcevallos.citas(
+id_citas serial primary key,
+id_cliente int not null,
+id_empleado int not null,
+id_servicios int not null,
+fecha_cita timestamp not null,
+tipo_cita varchar(100) default 'PENDIENTE' check (tipo_cita IN ('PENDIENTE', 'POR CONFIRMAR', 'CANCELADA')),
+descripcion text,
+estado boolean not null default true,
+creado_en timestamp default current_timestamp,
+actualizado_en timestamp,
+foreign key (id_cliente) references vcevallos.cliente(id_cliente),
+foreign key (id_empleado) references vcevallos.empleado(id_empleado),
+foreign key (id_servicios) references vcevallos.servicios(id_servicios)
+);
