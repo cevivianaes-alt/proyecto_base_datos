@@ -1,16 +1,30 @@
-SELECT conname
+SELECT conname --select para verificar el nombre de id / fk--
 FROM pg_constraint
 WHERE conrelid = 'vcevallos.citas'::regclass
 AND contype = 'f';
 
+---Eliminar la clave foránea---
 ALTER TABLE vcevallos.citas
 DROP CONSTRAINT citas_id_servicios_fkey;
 
+---Eliminar la columna id_servicios de citas---
 ALTER TABLE vcevallos.citas
 DROP COLUMN id_servicios;
 
+---Consulta para verificar que citas quedó correcto---
+SELECT column_name
+FROM information_schema.columns
+WHERE table_schema = 'vcevallos'
+AND table_name = 'citas';
+
+---Agregar relación de citas en factura---
 ALTER TABLE vcevallos.factura
 ADD COLUMN id_citas int;
 
 ALTER TABLE vcevallos.factura
 ALTER COLUMN id_citas SET NOT NULL;
+
+ALTER TABLE vcevallos.factura
+ADD CONSTRAINT factura_citas_fk
+FOREIGN KEY (id_citas)
+REFERENCES vcevallos.citas(id_citas);
