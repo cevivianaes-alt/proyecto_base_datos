@@ -76,7 +76,6 @@ create table vcevallos.citas(
 id_citas serial primary key,
 id_cliente int not null,
 id_empleado int not null,
-id_servicios int not null,
 fecha_cita timestamp not null,
 tipo_cita varchar(100) default 'PENDIENTE' check (tipo_cita IN ('PENDIENTE', 'POR CONFIRMAR', 'CANCELADA')),
 descripcion text,
@@ -84,6 +83,6 @@ estado boolean not null default true,
 creado_en timestamp default current_timestamp,
 actualizado_en timestamp,
 foreign key (id_cliente) references vcevallos.cliente(id_cliente),
-foreign key (id_empleado) references vcevallos.empleado(id_empleado),
-foreign key (id_servicios) references vcevallos.servicios(id_servicios)
+foreign key (id_empleado) references vcevallos.empleado(id_empleado)
 );
+
