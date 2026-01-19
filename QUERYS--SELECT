@@ -1,0 +1,92 @@
+--#1)Top 5 clientes por gasto total (solo facturas con estado = true) 
+--Enunciado:
+--La tienda quiere premiar a sus 5 clientes que más han gastado. Usa un CTE para calcular cuánto ha gastado cada cliente en total (solo facturas con estado = true). 
+--Luego, muestra el nombre, email y el total gastado, ordenado de mayor a menor.
+-- CTE: primero calculamos cuánto ha gastado cada cliente
+with gasto_cliente as (
+    select f.id_cliente,       -- se obtiene el id del cliente desde la factura
+           sum(f.total) as total_gastado    -- se suma el total de todas sus facturas
+    from vcevallos.factura f
+    where f.estado = true
+    group by f.id_cliente
+)
+-- Consulta final: se muestran los datos del cliente
+select c.nombre,
+       c.email,
+       gc.total_gastado
+from gasto_cliente gc
+     inner join vcevallos.cliente c
+     on gc.id_cliente = c.id_cliente  -- se relaciona el gasto con el cliente
+order by gc.total_gastado desc
+limit 5;                   -- solo se muestran los 5 primeros
+
+--2) Servicios más vendidos: cantidad y monto (ranking con ventana)
+--Enunciado: La gerencia quiere saber qué servicios son los más populares y cuáles generan más ingresos. 
+--Calcula, por cada servicio, la cantidad total vendida y el monto total (solo facturas con estado = true). Agrega un ranking por cantidad y por monto usando funciones de ventana.
+
+select s.id_servicios,
+       s.nombre,   -
+       count(1) as cantidad_vendida,   -- cuántas veces se vendió el servicio
+       sum(s.id_servicios) as monto_total  -- dinero total generado por el servicio
+from vcevallos.factura f
+     inner join vcevallos.detalle_factura df
+     on f.id_factura = df.id_factura
+     inner join vcevallos.servicios s
+     on df.id_servicios = s.id_servicios
+where f.estado = true    -- solo facturas válidas
+group by s.id_servicios, s.nombre  -- se agrupa por servicio
+order by cantidad_vendida desc, --primero el más vendido
+     monto_total desc;  -- luego el que más dinero genera
+
+--3) Productividad por empleado: facturas, total y ticket promedio
+--Enunciado: La empresa desea evaluar la productividad de cada empleado. 
+--Para cada empleado, muestra: número de facturas, total facturado, y ticket promedio (total / número de facturas), considerando solo facturas con estado = true. Ordena por total facturado de mayor a menor.
+
+select e.id_empleado,
+       e.nombre,
+       count(f.id_factura) as total_facturas,
+       sum(f.total) as total_facturado,
+       round((sum(f.total) / count(f.id_factura)), 2) as ticket_promedio -- promedio por factura (2 decimales) 
+from vcevallos.empleado e
+     inner join vcevallos.factura f
+     on e.id_empleado = f.id_empleado 
+where f.estado = true    -- solo facturas activas
+group by e.id_empleado, e.nombre      -- se agrupa por empleado
+order by total_facturado desc;      -- se ordena por el más productivo
+
+--4) Tasa de conversión de citas a facturas por mes
+--Enunciado: Dirección quiere medir la tasa de conversión: de todas las citas por mes, ¿cuántas terminaron en factura? Muestra por mes de fecha_cita: total de citas creadas, facturas --generadas (via factura.id_citas) y el porcentaje de conversión.
+
+select to_char(c.fecha_cita, 'YYYY-MM') as mes,  -- se agrupa por mes y año
+       count(c.id_citas) as total_citas,  -- total de citas creadas
+       count(f.id_factura) as facturas_generadas, -- cuántas citas terminaron en factura
+       round((count(f.id_factura)::numeric / count(c.id_citas)) * 100, 2) as porcentaje_conversion  -- porcentaje de conversión
+from vcevallos.citas c
+     left join vcevallos.factura f
+     on c.id_cliente = f.id_cliente
+group by mes    -- se agrupa por mes
+order by mes;   -- se ordena 
+
+--5) Clientes inactivos en los últimos 90 días (sin citas ni facturas) Enunciado: El equipo de marketing quiere identificar los clientes inactivos para campañas de reactivación.
+--Lista los clientes que en los últimos 90 días no tienen ni citas (citas.estado = true) ni facturas (factura.estado = true). 
+--Muestra nombre, email y la última fecha de actividad (si existiera).
+
+select c.nombre,
+       c.email,
+       max(coalesce(ci.fecha_cita, f.fecha)) as ultima_fecha_actividad  -- última actividad registrada
+from vcevallos.cliente c
+     left join vcevallos.citas ci
+     on c.id_cliente = ci.id_cliente
+     and ci.estado = true
+     and ci.fecha_cita >= now() - interval '90 days'
+     left join vcevallos.factura f
+     on c.id_cliente = f.id_cliente
+     and f.estado = true
+     and f.fecha >= now() - interval '90 days' -- últimos 90 días
+
+group by c.nombre, c.email
+having count(ci.id_citas) = 0   -- sin citas recientes
+   and count(f.id_factura) = 0  -- sin facturas recientes
+order by c.nombre;
+
+--La base de datos no muesta clientes ya que no existe dicha actividad (los clientes tienen 1 actividad) 
